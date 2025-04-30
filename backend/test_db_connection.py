@@ -97,15 +97,47 @@ sample_match_object = {
 # Sample Competition List
 sample_competition_list = [
     {
-        "name": "England - Premier League",
+        "name": "Italy - Serie A",
         "status": True
     },
     {
-         "name": "Spain - La Liga",
+         "name": "France - Ligue 1",
+        "status": True
+    },
+    {
+        "name": "Portugal - Liga Portugal",
+        "status": True
+    },
+    {
+        "name": "Netherlands - Eredivisie",
+        "status": True
+    },
+    {
+        "name": "England - Championship",
+        "status": True
+    },
+    {
+        "name": "England - League One",
         "status": False
     },
     {
-        "name": "Germany - Bundesliga",
+        "name": "England - League Two",
+        "status": False
+    },
+    {
+        "name": "Spain - LaLiga2",
+        "status": False
+    },
+    {
+        "name": "Germany - 2. Bundesliga",
+        "status": False
+    },
+    {
+        "name": "Scotland - Premiership",
+        "status": True
+    },
+    {
+        "name": "Turkey - Super Lig",
         "status": True
     }
 ]

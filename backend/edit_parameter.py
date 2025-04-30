@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure, PyMongoError
 from dotenv import load_dotenv 
 from backend import prompt
-
+from backend import ai_output_schema
 
 load_dotenv()
 
@@ -64,7 +64,9 @@ else:
 # Fixture URL to scrape from
 DEFAULT_FIXTURE_URL = "https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=104" # Or update to your preferred default/current
 
+CHUNK_SIZE_CHARS = 28000
 # Rate limit values (example values - check actual limits if needed)
+MODEL = "gemini-2.0-flash"
 GEMINI_RPM = 30
 GEMINI_TPM = 1000000 # Tokens per minute
 GEMINI_RPD = 1500 # Requests per day
@@ -84,6 +86,10 @@ parameter_document = {
     "post-match_final_prompt": prompt.POST_MATCH_FINAL_PROMPT,   # Currently None
     # Include the new number of predicted events
     "number_of_predicted_events": NUMBER_OF_PREDICTED_EVENTS,
+    "match_prediction_schema": ai_output_schema.MATCH_PREDICTION_SCHEMA,
+    "post_match_analysis_schema": ai_output_schema.POST_MATCH_ANALYSIS_SCHEMA, 
+    "chunk_size_chars": CHUNK_SIZE_CHARS,
+    "model": MODEL,
     # Include the rate limits
     "rpm": GEMINI_RPM,
     "tpm": GEMINI_TPM,
