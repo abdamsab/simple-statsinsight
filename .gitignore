@@ -1,0 +1,39 @@
+# /your-project-root/.gitignore
+
+# Ignore the backend's virtual environment just in case
+# (Also ignored by backend/.gitignore, but good to double ignore)
+/backend/venv/
+/backend/.venv/
+
+# Ignore the frontend's node_modules (usually already in frontend/.gitignore)
+# But good to double ignore at the root
+/frontend/node_modules/
+
+# Build/distribution directories from frontend (Vite defaults to 'dist')
+/frontend/dist/
+
+# Common OS and Editor / IDE files
+.DS_Store       # macOS
+Thumbs.db       # Windows
+ehthumbs.db     # Windows
+.editorconfig   # Editor config (optional, commit if shared)
+.vscode/        # VS Code settings (optional, commit if shared)
+.idea/          # IntelliJ/PyCharm settings
+
+# Replit specific files (decide if you want to commit .replit)
+# .replit       # Uncomment this line to ignore the .replit file
+# poetry.lock   # If you use poetry
+
+# Any log files at the root
+*.log
+
+# Environment files at the root (if any, less common in this structure)
+.env
+
+# Cache/temporary directories
+.cache/
+tmp/
+
+# Build output (if any build happens at the root)
+dist/
+build/
