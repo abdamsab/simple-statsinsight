@@ -14,7 +14,7 @@ function App() {
     try {
       // *** IMPORTANT: This URL MUST match the address and port where your FastAPI backend is running ***
       // If Uvicorn is running on 127.0.0.1:8000, this is correct.
-      const response = await fetch('http://127.0.0.1:8000/hello');
+      const response = await fetch('https://02023e9e-a2e7-48d2-bb1a-66db63645a64-00-3kl5ef2mfxu3w.janeway.replit.dev:8080/hello');
 
       if (!response.ok) {
         // If the server responds with an error status (like 404 or 500)

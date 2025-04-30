@@ -1,2 +1,9 @@
-fastapi[standard]
+fastapi
 uvicorn[standard]
+google-generativeai
+playwright
+lxml
+crawl4ai
+python-dateutil
+pymongo
+python-dotenv
