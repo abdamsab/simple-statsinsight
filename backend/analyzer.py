@@ -82,7 +82,7 @@ async def analyze_with_gemini(
     rpd_limit: int | None = None,
     tpm_limit: int | None = None, # TPM limit included but not strictly enforced in wait_for_rate_limit yet
     # number_of_predicted_events is primarily for prompt formatting, handled by caller
-     number_of_predicted_events: int | None = None
+    # number_of_predicted_events: int | None = None
     chunk_size_chars: int | None = None # --- NEW PARAMETER ---
 ):
     """

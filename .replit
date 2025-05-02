@@ -5,7 +5,7 @@ entrypoint = "frontend/index.html"
 
 [nix]
 channel = "stable-24_05"
-packages = ["micro", "python312Packages.uvicorn"]
+packages = ["micro"]
 
 [unitTest]
 language = "nodejs"

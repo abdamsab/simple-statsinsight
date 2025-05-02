@@ -1,0 +1,23 @@
+INFO:     Will watch for changes in these directories: ['/home/runner/workspace']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [352] using StatReload
+INFO:     Started server process [357]
+INFO:     Waiting for application startup.
+Application startup initiated.
+Attempting to connect to MongoDB...
+MongoDB connection successful.
+Using MongoDB database: statsinsight
+Using MongoDB collection: predictions
+Using MongoDB collection: competitions
+Using MongoDB collection: parameters
+Attempting to load parameters from the database...
+Parameters successfully loaded from database.
+Attempting to initialize Gemini client...
+Gemini client initialized with model: gemini-2.0-flash.
+Application startup complete.
+INFO:     Application startup complete.
+INFO:     10.82.3.230:0 - "GET / HTTP/1.1" 404 Not Found
+Starting full pre-match prediction process...
+Error: Missing essential configuration parameters loaded from DB.
+Missing or None keys: ['prediction_schema']
+INFO:     10.82.3.230:0 - "GET /run-predictions HTTP/1.1" 200 OK

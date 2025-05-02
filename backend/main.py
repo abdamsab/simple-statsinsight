@@ -156,7 +156,7 @@ async def run_full_prediction_process():
     fixture_url = parameters_config.get("fixture_url")
     initial_predict_prompt_template = parameters_config.get("predict_initial_prompt") # Get template string
     final_predict_instruction_string = parameters_config.get("predict_final_prompt") # Get string
-    match_prediction_schema = parameters_config.get("prediction_schema") # Get schema dictionary
+    match_prediction_schema = parameters_config.get("match_prediction_schema") # Get schema dictionary
     # Get rate limits and prediction count
     rpm_limit = parameters_config.get("rpm")
     rpd_limit = parameters_config.get("rpd")
