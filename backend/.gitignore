@@ -1,0 +1,39 @@
+# backend/.gitignore
+
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Virtual environment
+# You might use 'venv' or '.venv' depending on your setup
+venv/
+.venv/
+
+# Distribution / build files
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Environment variables file - CRITICAL TO IGNORE SECRETS
+.env
+
+# Logs
+*.log
+
+# IDE-specific files (examples - adjust based on your IDE)
+.vscode/
+.idea/
+
+# pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Other potential temporary files
+*.swp
+*~
+
+# Playwright browser downloads
+# If playwright downloads browsers to the backend directory
+browser-downloads/
