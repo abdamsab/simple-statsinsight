@@ -62,23 +62,28 @@ else:
 # Prompt strings are sourced from prompt.py.
 
 # Fixture URL to scrape from
-DEFAULT_FIXTURE_URL = "https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=104" # Or update to your preferred default/current
-
-CHUNK_SIZE_CHARS = 28000
+TODAY_FIXTURE_URL = "https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=104" # Or update to your preferred default/current
+TOMORROW_FIXTURE_URL = "https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=1"
+FETCH_TODAY = True
+CHUNK_SIZE_CHARS = 100000
 # Rate limit values (example values - check actual limits if needed)
 MODEL = "gemini-2.0-flash"
+MAX_OUTPUT_TOKENS = 8192
 GEMINI_RPM = 30
 GEMINI_TPM = 1000000 # Tokens per minute
 GEMINI_RPD = 1500 # Requests per day
-
+TEMPERATURE = 0.0
+TOP_P = 0.9
 # The number of predicted events to request from the AI
-NUMBER_OF_PREDICTED_EVENTS = 9 # Default or desired value
+NUMBER_OF_PREDICTED_EVENTS = 10 # Default or desired value
 
 
 # --- Construct the Parameter Document ---
 # This dictionary holds all the parameters to be inserted.
 parameter_document = {
-    "fixture_url": DEFAULT_FIXTURE_URL,
+    "today_fixture_url": TODAY_FIXTURE_URL,
+    "tomorrow_fixture_url": TOMORROW_FIXTURE_URL,
+    "fetch_today": FETCH_TODAY,
     # Get prompt templates from prompt.py:
     "predict_initial_prompt": prompt.INITIAL_PREDICTION_PROMPT,
     "predict_final_prompt": prompt.FINAL_PREDICTION_INSTRUCTION,
@@ -91,6 +96,9 @@ parameter_document = {
     "chunk_size_chars": CHUNK_SIZE_CHARS,
     "model": MODEL,
     # Include the rate limits
+    "max_output_tokens": MAX_OUTPUT_TOKENS,
+    "temperature": 0.0,
+    "top_p": 0.9,
     "rpm": GEMINI_RPM,
     "tpm": GEMINI_TPM,
     "rpd": GEMINI_RPD
