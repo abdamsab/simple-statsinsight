@@ -1,0 +1,126 @@
+Gemini client initialized for model: gemini-2.0-flash.
+Fetching match fixtures for specified competitions...
+Fetched 1 fixtures from target competitions.
+
+Processing 1 matches...
+
+--- Processing Match 1/1 ---
+Match: Rangers vs Celtic
+Fetching stats from: https://www.soccerstats.com/pmatch.asp?league=scotland&stats=210-2-9-2025
+[INIT].... → Crawl4AI 0.6.2
+[FETCH]... ↓ https://www.soccerstats.com/pmatch.asp?league=scotland&stats=210-2-9-2025                            | ✓ | ⏱: 3.26s
+[SCRAPE].. ◆ https://www.soccerstats.com/pmatch.asp?league=scotland&stats=210-2-9-2025                            | ✓ | ⏱: 3.79s
+[COMPLETE] ● https://www.soccerstats.com/pmatch.asp?league=scotland&stats=210-2-9-2025                            | ✓ | ⏱: 7.06s
+Stats fetched and converted to markdown.
+markdown_length:  51299
+Analyzing match: Rangers vs Celtic
+New Gemini chat started for analysis.
+Sending initial prompt to Gemini...
+Markdown split into 2 chunks.
+Sending chunk 1...
+Sending chunk 2...
+Sending final instruction to Gemini and requesting JSON output...
+
+--- Analysis Result ---
+{
+  "match": "Rangers vs Celtic",
+  "match_date": "Sun 4 May 2025",
+  "match_time": "12:00",
+  "general_assessment": "A high-stakes Old Firm derby. Celtic's superior form and attacking prowess make them slight favorites, but Rangers' home advantage and need to close the gap in the league cannot be discounted. A closely contested, potentially high-scoring match is anticipated, with Celtic likely to edge it.",
+  "overall_match_confidence_score": 6.7,
+  "match_predictions": [
+    {
+      "market_category": "Popular Markets",
+      "event": "Celtic to Win",
+      "confidence_score": 6.8,
+      "reason": "Celtic has a stronger overall record (27 wins out of 34 matches) compared to Rangers (20 wins). Celtic also has a better away record (71% wins) and a recent 5-0 away win. Ranger's last three home games were lost."
+    },
+    {
+      "market_category": "Popular Markets",
+      "event": "Over 2.5 Goals",
+      "confidence_score": 7.5,
+      "reason": "76% of Celtic's total matches and 71% of their away matches had over 2.5 goals. Rangers' home matches also suggest a tendency towards higher-scoring games (56%)."
+    },
+    {
+      "market_category": "Popular Markets",
+      "event": "Both Teams to Score (Yes)",
+      "confidence_score": 6.0,
+      "reason": "Rangers score in 88% of home games; Celtic score in 82% of away games. Both sides show ability to find the net."
+    },
+    {
+      "market_category": "Popular Markets",
+      "event": "First Team to Score: Celtic",
+      "confidence_score": 7.0,
+      "reason": "Celtic has scored the opening goal in 82% of their matches, demonstrating a strong tendency to start games on the front foot. Their average minute for scoring first away is also earlier than Rangers' home conceding first."
+    },
+    {
+      "market_category": "Popular Markets",
+      "event": "Correct Score: 1-2",
+      "confidence_score": 4.5,
+      "reason": "Considering Celtic's away scoring record and Rangers' recent defensive vulnerabilities at home, a 2-1 win for Celtic is a plausible scenario."
+    },
+    {
+      "market_category": "First Half Markets",
+      "event": "1st Half Over 0.5 Goals",
+      "confidence_score": 8.0,
+      "reason": "Celtic has scored 1.44 goals on average in the first half of their matches, and Rangers conceded 0.65 in first half."
+    },
+    {
+      "market_category": "Second Half Markets",
+      "event": "2nd Half Over 1.5 Goals",
+      "confidence_score": 7.2,
+      "reason": "Statistical analysis indicates there is high possibilty of Over 1.5 Goals in 2nd half."
+    },
+    {
+      "market_category": "Goal Markets",
+      "event": "Highest Scoring Half: Second Half",
+      "confidence_score": 6.5,
+      "reason": "Both teams show a tendency to score more goals in the second half of their matches."
+    },
+    {
+      "market_category": "Corner Markets",
+      "event": "Over 10.5 Corners",
+      "confidence_score": 6.2,
+      "reason": "Both teams generate a significant number of corners with their attacking play. Rangers average 11.0 total corners at home, and Celtic average 11.12 total corners away."
+    },
+    {
+      "market_category": "Popular Markets",
+      "event": "Half Time/Full Time: X/2",
+      "confidence_score": 4.0,
+      "reason": "Rangers may hold their own in the first half at home combined with Celtic's strong second-half performances."
+    },
+    {
+      "market_category": "Popular Markets",
+      "event": "Handicap (1X2): Celtic (-1)",
+      "confidence_score": 5.8,
+      "reason": "Celtic's dominant wins suggest the capacity to win by more than one goal, leveraging their attacking advantage."
+    },
+    {
+      "market_category": "Combined Markets",
+      "event": "Celtic & Over 2.5 Goals",
+      "confidence_score": 6.2,
+      "reason": "Combining Celtic's attacking performance with the likelihood of over 2.5 goals."
+    },
+    {
+      "market_category": "Home / Away Markets",
+      "event": "Both Teams to Score",
+      "confidence_score": 6.4,
+      "reason": "Rangers' home scoring record and Celtic's away scoring records support the probability of both teams finding the net."
+    },
+    {
+      "market_category": "Other Markets",
+      "event": "Goal in First 15 Minutes: Yes",
+      "confidence_score": 5.9,
+      "reason": "The attacking nature of both teams increases the likelihood of an early goal."
+    },
+    {
+      "market_category": "Popular Markets",
+      "event": "Total Goals (Exact): 3",
+      "confidence_score": 5.2,
+      "reason": "Given the scoring averages and the tendency for over 2.5 goals, an exact total of 3 goals is a plausible outcome."
+    }
+  ]
+}
+-----------------------
+
+--- Processing Complete ---

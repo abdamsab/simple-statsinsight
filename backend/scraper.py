@@ -167,7 +167,12 @@ async def fetch_match_stats_markdown(url: str):
     )
 
     run_config = CrawlerRunConfig(
-        markdown_generator=md_generator
+        markdown_generator=md_generator,
+        css_selector=".body-text",  # Target content within the .body-text div
+        excluded_tags=["form", "header", "footer", "nav"],  # Remove unwanted HTML tags
+        exclude_external_links=True,       # Link filtering to remove external and social media links
+        exclude_social_media_links=True,
+        exclude_external_images=True,  # Media filtering: remove external images
     )
 
     browser_config = BrowserConfig()
