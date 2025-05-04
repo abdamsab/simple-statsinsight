@@ -1,0 +1,125 @@
+INFO:     Will watch for changes in these directories: ['/workspaces/simple-statsinsight']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [2432] using StatReload
+INFO:     Started server process [2492]
+INFO:     Waiting for application startup.
+Application startup initiated.
+Attempting to connect to MongoDB...
+MongoDB connection successful.
+Using MongoDB database: statsinsight
+Using MongoDB collection: predictions
+Using MongoDB collection: competitions
+Using MongoDB collection: parameters
+Attempting to load parameters from the database...
+Parameters successfully loaded from database.
+Attempting to initialize Gemini client for model: gemini-2.0-flash using google.genai...
+Gemini client initialized successfully.
+Application startup complete.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:48058 - "POST /run-predictions HTTP/1.1" 200 OK
+Starting full pre-match prediction process in background...
+Fetching TOMORROW's matches from: https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=1
+Fetching match fixtures from https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=1...
+Querying database for active competitions...
+Found 5 active competitions in the database: ['England - Premier League', 'Spain - LaLiga', 'Italy - Serie A', 'Portugal - Liga Portugal', 'Argentina - Primera B - Apertura']
+Scraping fixtures from URL: https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=1
+Finished scraping. Found 4 fixtures after filtering by database status.
+
+Processing 4 matches...
+
+--- Processing Match 1/4 ---
+Match: Crystal Palace vs Nottm Forest
+Fetching stats/results markdown from: https://www.soccerstats.com/pmatch.asp?league=england&stats=346-16-11-2025
+[INIT].... → Crawl4AI 0.6.2
+[FETCH]... ↓ https://www.soccerstats.com/pmatch.asp?league=england&stats=346-16-11-2025                           | ✓ | ⏱: 2.66s
+[SCRAPE].. ◆ https://www.soccerstats.com/pmatch.asp?league=england&stats=346-16-11-2025                           | ✓ | ⏱: 4.14s
+[COMPLETE] ● https://www.soccerstats.com/pmatch.asp?league=england&stats=346-16-11-2025                           | ✓ | ⏱: 6.80s
+Stats/results fetched and converted to markdown.
+Markdown Length: 60923
+Sending stats for AI analysis...
+New Gemini chat started for analysis.
+Sending initial prompt to Gemini...
+Sending string input data (markdown)...
+Input data split into 1 chunks.
+Sending chunk 1...
+Sending final instruction to Gemini and requesting JSON output...
+Final response finish reason: STOP
+Successfully parsed JSON output from Gemini.
+AI analysis successful. Preparing document for MongoDB.
+Successfully saved match analysis for Crystal Palace vs Nottm Forest to MongoDB with ID: 6817c199931fce6c5fef8cbd
+Waiting for 15 seconds before processing the next match...
+
+--- Processing Match 2/4 ---
+Match: Genoa vs AC Milan
+Fetching stats/results markdown from: https://www.soccerstats.com/pmatch.asp?league=italy&stats=344-1-7-2025
+[INIT].... → Crawl4AI 0.6.2
+[FETCH]... ↓ https://www.soccerstats.com/pmatch.asp?league=italy&stats=344-1-7-2025                               | ✓ | ⏱: 4.97s
+[SCRAPE].. ◆ https://www.soccerstats.com/pmatch.asp?league=italy&stats=344-1-7-2025                               | ✓ | ⏱: 4.07s
+[COMPLETE] ● https://www.soccerstats.com/pmatch.asp?league=italy&stats=344-1-7-2025                               | ✓ | ⏱: 9.04s
+Stats/results fetched and converted to markdown.
+Markdown Length: 57872
+Sending stats for AI analysis...
+New Gemini chat started for analysis.
+Sending initial prompt to Gemini...
+Sending string input data (markdown)...
+Input data split into 1 chunks.
+Sending chunk 1...
+Sending final instruction to Gemini and requesting JSON output...
+Final response finish reason: STOP
+Successfully parsed JSON output from Gemini.
+AI analysis successful. Preparing document for MongoDB.
+Successfully saved match analysis for Genoa vs AC Milan to MongoDB with ID: 6817c1ca931fce6c5fef8cbe
+Waiting for 15 seconds before processing the next match...
+
+--- Processing Match 3/4 ---
+Match: Girona vs Mallorca
+Fetching stats/results markdown from: https://www.soccerstats.com/pmatch.asp?league=spain&stats=331-4-15-2025
+[INIT].... → Crawl4AI 0.6.2
+[FETCH]... ↓ https://www.soccerstats.com/pmatch.asp?league=spain&stats=331-4-15-2025                              | ✓ | ⏱: 2.70s
+[SCRAPE].. ◆ https://www.soccerstats.com/pmatch.asp?league=spain&stats=331-4-15-2025                              | ✓ | ⏱: 4.05s
+[COMPLETE] ● https://www.soccerstats.com/pmatch.asp?league=spain&stats=331-4-15-2025                              | ✓ | ⏱: 6.74s
+Stats/results fetched and converted to markdown.
+Markdown Length: 58741
+Sending stats for AI analysis...
+New Gemini chat started for analysis.
+Sending initial prompt to Gemini...
+Sending string input data (markdown)...
+Input data split into 1 chunks.
+Sending chunk 1...
+Sending final instruction to Gemini and requesting JSON output...
+Final response finish reason: STOP
+Successfully parsed JSON output from Gemini.
+AI analysis successful. Preparing document for MongoDB.
+Successfully saved match analysis for Girona vs Mallorca to MongoDB with ID: 6817c1f1931fce6c5fef8cbf
+Waiting for 15 seconds before processing the next match...
+
+--- Processing Match 4/4 ---
+Match: AVS vs Boavista
+Fetching stats/results markdown from: https://www.soccerstats.com/pmatch.asp?league=portugal&stats=282-3-6-2025
+[INIT].... → Crawl4AI 0.6.2
+[FETCH]... ↓ https://www.soccerstats.com/pmatch.asp?league=portugal&stats=282-3-6-2025                            | ✓ | ⏱: 2.60s
+[SCRAPE].. ◆ https://www.soccerstats.com/pmatch.asp?league=portugal&stats=282-3-6-2025                            | ✓ | ⏱: 3.73s
+[COMPLETE] ● https://www.soccerstats.com/pmatch.asp?league=portugal&stats=282-3-6-2025                            | ✓ | ⏱: 6.33s
+Stats/results fetched and converted to markdown.
+Markdown Length: 55377
+Sending stats for AI analysis...
+New Gemini chat started for analysis.
+Sending initial prompt to Gemini...
+Sending string input data (markdown)...
+Input data split into 1 chunks.
+Sending chunk 1...
+Sending final instruction to Gemini and requesting JSON output...
+Final response finish reason: STOP
+Successfully parsed JSON output from Gemini.
+AI analysis successful. Preparing document for MongoDB.
+Successfully saved match analysis for AVS vs Boavista to MongoDB with ID: 6817c21f931fce6c5fef8cc0
+Background pre-match prediction process complete.
+Summary: 4 matches successfully analyzed and saved, 0 matches encountered errors during fetch/analysis/save.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+Application shutdown initiated.
+MongoDB connection closed.
+Application shutdown complete.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2492]
+INFO:     Stopping reloader process [2432]

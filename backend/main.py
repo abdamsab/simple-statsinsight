@@ -1,5 +1,15 @@
 # backend/main.py
 
+# This is the main FastAPI application file.
+# It orchestrates calls to other backend modules (database, scraper, analyzer).
+# Configuration (including schemas and model name) is loaded from the database parameters.
+# Uses the NEW google.genai library as shown in the user's working example.
+# Corrected checks to match your database.py structure (no database_manager attribute).
+# Passes parameters_config and genai_client to analyzer.
+# IMPLEMENTS date fetching logic based on 'fetch_today' flag and 'today/tomorrow_fixtures_url' from database parameters.
+# IMPLEMENTS reading of AI generation parameters (temperature, top_p, top_k) from database parameters.
+# FIXED: Simplified complex parameter validation logic that caused SyntaxError.
+
 import asyncio                                                              # For asynchronous operations
 import os                                                                   # For accessing environment variables
 import uvicorn                                                              # For running the FastAPI server
@@ -53,9 +63,9 @@ async def startup_event():
     print("Application startup initiated.")
 
     global competitions_collection, parameters_config, genai_client
-    
+
     # --- Step 1: Connect to MongoDB and get collection references ---
-    
+
     await database.connect_to_mongo()               # Calls the connect_to_mongo function in the database module to establish MongoDB connection and set its global client/manager/collection references.
     competitions_collection = database.get_competitions_collection()            # Access the competitions collection via the database module's getter function
     params_collection = database.get_parameters_collection()                    # Access the parameters collection via the database module's getter function
@@ -71,14 +81,14 @@ async def startup_event():
             parameter_document = await database.find_one(params_collection, {})
 
             if parameter_document:
-                
+
                 parameters_config = parameter_document              # Store the loaded parameters dictionary in the global parameters_config variable.
                 print("Parameters successfully loaded from database.")
 
 
             else:
                 print("FATAL ERROR: No parameter document found in the database. Configuration loading failed.")
-                parameters_config = None 
+                parameters_config = None
 
         except Exception as e:
             print(f"FATAL ERROR: Error loading parameters from database: {e}")
@@ -100,21 +110,21 @@ async def startup_event():
                  # Handle the case where the GEMINI_API_KEY environment variable is NOT set.
                  print("FATAL ERROR: GEMINI_API_KEY environment variable not set during client initialization.")
                  print("Please ensure the GEMINI_API_KEY environment variable is set correctly in your environment.")
-                 genai_client = None 
+                 genai_client = None
 
         except Exception as e:
             print(f"FATAL ERROR: Error initializing Gemini client: {e}")
-            genai_client = None 
+            genai_client = None
 
 
     else:
          print("FATAL ERROR: Parameters configuration not loaded, skipping Gemini client initialization.")
-         genai_client = None 
+         genai_client = None
 
     # --- Check if critical components are initialized ---
     if parameters_config is None or genai_client is None or competitions_collection is None or database.mongo_client is None or database.get_predictions_collection() is None or database.get_parameters_collection() is None:
         print("FATAL ERROR: One or more critical startup components failed to initialize.")
-        pass # Allow the FastAPI application to start, but functionality relying on failed components will be unavailable.
+        pass # Allow the FastAPI application to start, but functionality relying on failed components will be impaired.
 
     print("Application startup complete.") # Log the completion of the application startup event.
 
@@ -140,7 +150,7 @@ async def read_root():
 # --- Endpoint to Trigger Analysis and Predictions ---
 # This POST endpoint triggers the full pre-match prediction process in a background task.
 # Using BackgroundTasks prevents the HTTP request from blocking until the long-running process completes, allowing for a quick response.
-@app.post("/run-predictions") 
+@app.post("/run-predictions")
 async def run_predictions_endpoint(background_tasks: BackgroundTasks):
     """Endpoint to trigger the full pre-match prediction process in the background."""
     # Before starting the background task, perform quick checks to ensure necessary components were initialized during startup.
@@ -180,11 +190,16 @@ async def run_predictions_endpoint(background_tasks: BackgroundTasks):
 # This asynchronous function contains the core logic for fetching data, running AI analysis, and saving results.
 # It is intended to be run as a background task, orchestrated by the /run-predictions endpoint.
 # It accesses necessary configuration and clients (AI client, DB collections) from global variables populated during startup.
+# IMPLEMENTS date fetching logic based on 'fetch_today' flag and 'today/tomorrow_fixtures_url' from database parameters.
+# IMPLEMENTS reading of AI generation parameters (temperature, top_p, top_k) from database parameters.
+# FIXED: Simplified complex parameter validation logic that caused SyntaxError.
 async def run_full_prediction_process():
     """
     Background function to orchestrate the scraping, analysis (pre-match), and saving to MongoDB.
     Accesses configuration and clients from global variables populated during application startup.
     Logs progress and saves results (successful analysis or errors) to the database.
+    Selects fixture URL and calculates target date based on 'fetch_today' flag in parameters config.
+    Reads AI generation parameters from parameters config.
     """
 
     print("Starting full pre-match prediction process in background...")
@@ -218,46 +233,135 @@ async def run_full_prediction_process():
 
 
     # --- Get parameters needed for this specific process run ---
-    fixture_url = parameters_config.get("fixture_url") # URL for fetching fixture list
+    # Access specific parameters from the global parameters_config dictionary for use in this function.
+    # Use .get() with default values for safety in case a parameter is missing in the DB document.
+    # Ensure parameter names match exactly what is stored in your database parameters document.
+    # MODIFIED: Get both today's and tomorrow's URLs and the fetch_today flag from the parameter config.
+    today_fixtures_url = parameters_config.get("today_fixture_url") # URL for fetching today's matches (using the key name from your snippet)
+    tomorrow_fixtures_url = parameters_config.get("tomorrow_fixture_url") # URL for fetching tomorrow's matches (using the key name from your snippet)
+    fetch_today = parameters_config.get("fetch_today", True) # Boolean flag: True for today, False for tomorrow, defaults to True if missing or not boolean
+
+
     initial_predict_prompt_template = parameters_config.get("predict_initial_prompt") # Template string for the initial prompt
     final_predict_instruction_string = parameters_config.get("predict_final_prompt") # Final instruction string to trigger JSON output
     match_prediction_schema = parameters_config.get("match_prediction_schema") # Schema dictionary for JSON output structure
     rpm_limit = parameters_config.get("rpm") # Rate limit: Requests Per Minute
     rpd_limit = parameters_config.get("rpd") # Rate limit: Requests Per Day
-    # tpm_limit = parameters_config.get("tpm") # Rate limit: Tokens Per Minute (not strictly used in wait_for_rate_limit in this version)
+    tpm_limit = parameters_config.get("tpm") # TPM limit parameter (not strictly used in wait_for_rate_limit in this version)
     number_of_predicted_events = parameters_config.get("number_of_predicted_events") # Number of events requested in prompt template
     chunk_size_chars = parameters_config.get("chunk_size_chars") # Chunk size parameter for splitting string input (markdown)
     max_output_tokens = parameters_config.get("max_output_tokens") # Max output tokens parameter for AI GenerationConfig
     model_name = parameters_config.get("model") # Get the model name string (e.g., "gemini-2.0-flash", "gemini-1.5-pro-latest") - This is needed by the rate limiter helper in the NEW analyzer.py.
     delay_between_matches = parameters_config.get("delay_between_matches", 15) # Delay in seconds between processing each match, default 15s
 
+    # --- Get AI Generation Parameters --- # Added comment for clarity
+    # These will be passed within the full parameters_config to the analyzer,
+    # but reading them here makes them available for potential validation/logging in main.py.
+    temperature = parameters_config.get("temperature", None) # Default to None if missing
+    top_p = parameters_config.get("top_p", None)          # Default to None if missing
+    top_k = parameters_config.get("top_k", None)          # Default to None if missing
+    # --- End AI Generation Parameters --- # Added comment for clarity
+
+
+    # --- Select Fixture URL and Calculate Target Date based on the 'fetch_today' flag ---
+    # This section determines which URL to use for scraping and what date to associate with the scraped matches.
+    selected_fixture_url = None
+    target_match_date_str = None
+
+    # Check if the URLs are present in the config and are strings.
+    if not isinstance(today_fixtures_url, str) or today_fixtures_url == "" or not isinstance(tomorrow_fixtures_url, str) or tomorrow_fixtures_url == "":
+         print("Error: 'today_fixture_url' or 'tomorrow_fixture_url' parameters are missing, empty, or not strings in database config.")
+         return {"message": "Error: Missing or invalid fixture URLs in configuration.", "status": "failed"}
+
+    # Use .get() with a default of True and explicitly check if the value retrieved is boolean True.
+    # This handles cases where 'fetch_today' is missing or not a boolean (defaults to True)
+    if parameters_config.get("fetch_today", True) is True:
+        selected_fixture_url = today_fixtures_url
+        # Calculate today's date in DD-MM-YYYY format (using your preferred format)
+        target_match_date_str = datetime.datetime.now().strftime('%d-%m-%Y')
+        print(f"Fetching TODAY's matches from: {selected_fixture_url}")
+    else: # fetch_today is False or any other value indicating 'not today' (due to default or non-boolean)
+        selected_fixture_url = tomorrow_fixtures_url
+        # Calculate tomorrow's date in DD-MM-YYYY format (using your preferred format)
+        target_match_date_str = (datetime.datetime.now() + timedelta(days=1)).strftime('%d-%m-%Y')
+        print(f"Fetching TOMORROW's matches from: {selected_fixture_url}")
+
 
     # --- Check if required parameters for the process are available and valid ---
-    is_config_valid = (
-        fixture_url is not None and fixture_url != "" # fixture_url must be a non-empty string
-        and initial_predict_prompt_template is not None and initial_predict_prompt_template != "" # initial_predict_prompt_template must be a non-empty string
-        and final_predict_instruction_string is not None and final_predict_instruction_string != "" # final_predict_instruction_string must be a non-empty string
-        and match_prediction_schema is not None and isinstance(match_prediction_schema, dict) and match_prediction_schema # match_prediction_schema must be a non-empty dictionary
-        and rpm_limit is not None and isinstance(rpm_limit, int) and rpm_limit >= 0 # rpm_limit must be a non-negative integer
-        and rpd_limit is not None and isinstance(rpd_limit, int) and rpd_limit >= 0 # rpd_limit must be a non-negative integer
-        and number_of_predicted_events is not None and isinstance(number_of_predicted_events, int) and number_of_predicted_events > 0 # number_of_predicted_events must be a positive integer
-        and chunk_size_chars is not None and isinstance(chunk_size_chars, int) and chunk_size_chars > 0 # chunk_size_chars must be a positive integer
-        and max_output_tokens is not None and isinstance(max_output_tokens, int) and max_output_tokens > 0 # max_output_tokens must be a positive integer
-        and model_name is not None and isinstance(model_name, str) and model_name != "" # model_name must be a non-empty string for rate limiter helper
-    )
+    # FIXED: Simplified validation logic for clarity and to avoid SyntaxError.
+    # This section checks for None, empty string, or empty dictionary, and correct types where appropriate.
+    missing_or_invalid = []
 
-    if not is_config_valid:
-         print("Error: Missing or invalid essential configuration parameters loaded from DB for running process.")
-         # List the keys that are missing, empty string, or empty dict/invalid type for better debugging.
-         missing_or_invalid = [k for k, v in parameters_config.items() if k in ["fixture_url", "predict_initial_prompt", "predict_final_prompt", "match_prediction_schema", "rpm", "rpd", "number_of_predicted_events", "chunk_size_chars", "max_output_tokens", "model"] and (v is None or (isinstance(v, str) and v == '') or (isinstance(v, dict) and not v) or (k in ["rpm", "rpd", "number_of_predicted_events", "chunk_size_chars", "max_output_tokens"] and not (isinstance(v, int) and v > 0 if k in ["number_of_predicted_events", "chunk_size_chars", "max_output_tokens"] else isinstance(v, int) and v >= 0)) or (k == "model" and not isinstance(v, str) and v != ""))] # Complex check including model_name
+    # Check Date/URL parameters (already checked above, but include in error list if found invalid)
+    if not isinstance(today_fixtures_url, str) or today_fixtures_url == "":
+        missing_or_invalid.append("today_fixture_url (missing, empty, or not string)")
+    if not isinstance(tomorrow_fixtures_url, str) or tomorrow_fixtures_url == "":
+         missing_or_invalid.append("tomorrow_fixture_url (missing, empty, or not string)")
+    # Note: The check for fetch_today being boolean is done above before selecting the URL.
+    # Check if fetch_today is present but not a boolean for logging
+    fetch_today_val = parameters_config.get("fetch_today") # Get raw value from config to check type for logging
+    if fetch_today_val is not None and not isinstance(fetch_today_val, bool):
+         missing_or_invalid.append(f"fetch_today (invalid type: {type(fetch_today_val)})")
 
-         print(f"Missing or invalid essential keys: {missing_or_invalid}")
 
-         return {"message": "Error: Missing or invalid essential configuration parameters for running process. Check database config.", "status": "failed"}
+    # Check essential Prompt/Schema parameters
+    if not initial_predict_prompt_template or not isinstance(initial_predict_prompt_template, str):
+        missing_or_invalid.append("predict_initial_prompt (missing or not string)")
+    if not final_predict_instruction_string or not isinstance(final_predict_instruction_string, str):
+        missing_or_invalid.append("predict_final_prompt (missing or not string)")
+    if not match_prediction_schema or not isinstance(match_prediction_schema, dict):
+        missing_or_invalid.append("match_prediction_schema (missing or not dictionary)")
+    # Assuming post-match schemas are not strictly essential for the pre-match process currently.
+    # if not post_match_analysis_schema or not isinstance(post_match_analysis_schema, dict):
+    #     missing_or_invalid.append("post_match_analysis_schema (missing or not dictionary)")
+
+
+    # Check numeric parameters (must be integers >= 0 or integers > 0)
+    if not isinstance(rpm_limit, int) or rpm_limit < 0:
+        missing_or_invalid.append("rpm (missing, not integer, or negative)")
+    if not isinstance(rpd_limit, int) or rpd_limit < 0:
+        missing_or_invalid.append("rpd (missing, not integer, or negative)")
+    # TPM limit is read but not strictly validated as it's not used in the current rate limiter helper logic.
+    # if not isinstance(tpm_limit, int) or tpm_limit < 0:
+    #     missing_or_invalid.append("tpm (missing, not integer, or negative)")
+
+    if not isinstance(number_of_predicted_events, int) or number_of_predicted_events <= 0:
+        missing_or_invalid.append("number_of_predicted_events (missing, not integer, or not positive)")
+    if not isinstance(chunk_size_chars, int) or chunk_size_chars <= 0:
+        missing_or_invalid.append("chunk_size_chars (missing, not integer, or not positive)")
+    if not isinstance(max_output_tokens, int) or max_output_tokens <= 0:
+        missing_or_invalid.append("max_output_tokens (missing, not integer, or not positive)")
+
+
+    # Check model name
+    if not model_name or not isinstance(model_name, str):
+         missing_or_invalid.append("model (missing or not string)")
+
+
+    # Check optional AI generation parameters if present but invalid type
+    # They are optional (None is allowed), but if present, they should be numbers
+    if temperature is not None and not isinstance(temperature, (int, float)):
+        missing_or_invalid.append(f"temperature (invalid type: {type(temperature)})")
+    if top_p is not None and not isinstance(top_p, (int, float)):
+         missing_or_invalid.append(f"top_p (invalid type: {type(top_p)})")
+    # top_k is also optional (None is allowed), but if present, should be an integer
+    if top_k is not None and not isinstance(top_k, int):
+         missing_or_invalid.append(f"top_k (invalid type: {type(top_k)})")
+
+
+    # If any essential parameters are missing or invalid, log and return failed status.
+    if missing_or_invalid:
+        print("Error: Missing or invalid essential configuration parameters loaded from DB for running process.")
+        print(f"Missing or invalid keys: {missing_or_invalid}")
+        return {"message": "Error: Missing or invalid essential configuration parameters for running process. Check database config.", "status": "failed"}
+
+    # --- End Parameter Validation --- # Added comment for clarity
 
 
     # --- Step 1: Fetch match fixtures (filtered by DB status) ---
-    fixtures = await scraper.fetch_matches_fixtures(fixture_url, competitions_collection)
+    # Call the scraping function to get the list of matches to process.
+    # Pass the SELECTED fixture URL and the TARGET MATCH DATE STRING to the scraper.
+    fixtures = await scraper.fetch_matches_fixtures(selected_fixture_url, competitions_collection, target_match_date_str) # Pass selected URL and date
 
     if not fixtures:
         print("No fixtures found to process after scraping and filtering.")
@@ -275,10 +379,11 @@ async def run_full_prediction_process():
     for i, match_data_from_scrape in enumerate(fixtures):
         print(f"\n--- Processing Match {i + 1}/{len(fixtures)} ---")
         # Use .get() with default values for safety when accessing match_data_from_scrape dictionary keys.
+        # The scraper now includes the correct 'date' based on the URL/flag selection.
         home_team = match_data_from_scrape.get('home_team', 'N/A')
         away_team = match_data_from_scrape.get('away_team', 'N/A')
         stats_link = match_data_from_scrape.get('stats_link', 'N/A')
-        match_date = match_data_from_scrape.get('date', 'N/A') # Get date for the database document
+        match_date = match_data_from_scrape.get('date', 'N/A') # Get date from the scraped match data (should be correct now)
         match_time = match_data_from_scrape.get('time', 'N/A') # Get time for the database document
         competition = match_data_from_scrape.get('competition', 'N/A') # Get competition for the database document
 
@@ -289,11 +394,11 @@ async def run_full_prediction_process():
         # This document will be inserted into the predictions collection.
         match_document_base = {
             "competition": competition,
-            "date": match_date,
-            "time": match_time,
-            "home_team": home_team,
-            "away_team": away_team,
-            "stats_link": stats_link,
+            "date": match_date, # Use the date obtained from the scraped match data (stamped correctly by scraper)
+            "time": match_time,  # Use the time obtained from the scraped match data
+            "home_team": home_team, # Use the home_team obtained from the scraped match data
+            "away_team": away_team,  # Use the away_team obtained from the scraped match data
+            "stats_link": stats_link, # Use the stats_link obtained from the scraped match data
             # Initialize prediction/analysis fields or status markers.
             "predict_status": False, # Set prediction status to False initially
             "post_match_analysis_status": False, # Set analysis status to False initially (for post-match if implemented)
@@ -322,6 +427,7 @@ async def run_full_prediction_process():
             print("Sending stats for AI analysis...")
 
             # Pass match_data, stats_markdown, parameters_config, and genai_client to the analyzer function.
+            # parameters_config already includes temperature, top_p, top_k if present in the database.
             analysis_result = await analyzer.analyze_with_gemini(
                 match_data=match_data_from_scrape, # Pass original match data (dictionary) for prompt formatting inside analyzer
                 input_data=stats_markdown, # Pass the markdown input (string)
@@ -345,7 +451,7 @@ async def run_full_prediction_process():
                 # Analysis was successful (analyze_with_gemini returned the parsed JSON dictionary)
                 print("AI analysis successful. Preparing document for MongoDB.")
                 # Update the base document with the analysis data and status fields.
-                match_document_base["predictions"] = analysis_result # Store the AI's parsed JSON output under the 'analysis_data' key
+                match_document_base["predictions"] = analysis_result # Store the AI's parsed JSON output under the 'predictions' key (matching your working code)
                 match_document_base["predict_status"] = True # Set prediction status to successful (boolean True)
                 match_document_base["status"] = "analysis_complete" # Set an overall status for the document
 
@@ -377,7 +483,7 @@ async def run_full_prediction_process():
                 print("Analysis result:", analysis_result) # This will print the error dictionary or unexpected return value
 
                 # Update the base document with the error details and failure status fields.
-                match_document_base["analysis_data"] = None # Clear analysis_data field as analysis failed
+                match_document_base["predictions"] = None # Clear predictions field as analysis failed
 
                 # Check if analysis_result is a dictionary and has error/details keys, otherwise provide default failure info
                 if isinstance(analysis_result, dict):
@@ -416,7 +522,7 @@ async def run_full_prediction_process():
 
                 except Exception as e:
                        # Log an error if saving the failure details to the database fails.
-                       print(f"Failed to save match with analysis error details to MongoDB: {e}")
+                       print(f"Failed to save match with analysis error to MongoDB: {e}")
                        failed_count += 1 # Count as failed if save fails
 
 
@@ -428,8 +534,8 @@ async def run_full_prediction_process():
             # Prepare a document indicating stats fetch failure.
             stats_fetch_error_document = {
                 "competition": competition,
-                "date": match_date,
-                "time": match_time,
+                "date": match_date, # Use the date obtained from the scraped match data
+                "time": match_time, # Use the time obtained from the scraped match data
                 "home_team": home_team,
                 "away_team": away_team,
                 "stats_link": stats_link,
@@ -484,27 +590,27 @@ async def run_full_prediction_process():
 # Example: Endpoint to get predictions from the DB
 # @app.get("/predictions")
 # async def get_predictions_endpoint():
-#     predictions_collection_instance = database.get_predictions_collection() # Use the getter
-#     if predictions_collection_instance is None:
-#          raise HTTPException(
-#             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-#             detail="Database predictions collection not available."
-#          )
-#     try:
-#         # Fetch recent predictions (e.g., limit 20, sort by date/time)
-#         # Use find_many from database module, passing the collection instance
-#         # from bson import ObjectId # Import ObjectId if you need to convert IDs to strings
-#         recent_predictions_cursor = await database.find_many(predictions_collection_instance, {}, options={"limit": 20, "sort": [("date", -1), ("time", 1)]})
-#         # Convert ObjectId to string for JSON serialization if necessary
-#         # for doc in recent_predictions_cursor:
-#         #     if '_id' in doc and isinstance(doc['_id'], ObjectId):
-#         #         doc['_id'] = str(doc['_id'])
-#         return recent_predictions_cursor
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail=f"Error fetching predictions: {e}"
-#         )
+#   predictions_collection_instance = database.get_predictions_collection() # Use the getter
+#   if predictions_collection_instance is None:
+#     raise HTTPException(
+#       status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+#       detail="Database predictions collection not available."
+#     )
+#    try:
+#      # Fetch recent predictions (e.g., limit 20, sort by date/time)
+#      # Use find_many from database module, passing the collection instance
+#      # from bson import ObjectId # Import ObjectId if you need to convert IDs to strings
+#      recent_predictions_cursor = await database.find_many(predictions_collection_instance, {}, options={"limit": 20, "sort": [("date", -1), ("time", 1)]})
+#      # Convert ObjectId to string for JSON serialization if necessary
+#      # for doc in recent_predictions_cursor:
+#      #   if '_id' in doc and isinstance(doc['_id'], ObjectId):
+#      #     doc['_id'] = str(doc['_id'])
+#      return recent_predictions_cursor
+#    except Exception as e:
+#      raise HTTPException(
+#        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#        detail=f"Error fetching predictions: {e}"
+#        )
 
 
 # --- Main Execution Block for running via `python main.py` ---

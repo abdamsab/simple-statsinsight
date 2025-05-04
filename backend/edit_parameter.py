@@ -62,7 +62,7 @@ else:
 # Prompt strings are sourced from prompt.py.
 
 # Fixture URL to scrape from
-TODAY_FIXTURE_URL = "https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=104" # Or update to your preferred default/current
+TODAY_FIXTURE_URL = "https://www.soccerstats.com/matches.asp?matchday=1&matchdayn=104" # Or update to your preferred default/current
 TOMORROW_FIXTURE_URL = "https://www.soccerstats.com/matches.asp?matchday=2&daym=tomorrow&matchdayn=1"
 FETCH_TODAY = True
 CHUNK_SIZE_CHARS = 100000
