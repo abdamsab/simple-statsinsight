@@ -1,0 +1,4 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   124  100   124    0     0  20666      0 --:--:-- --:--:-- --:--:-- 20666
+{"message":"Football prediction process started in the background. Check server logs for progress and results saved to DB."}

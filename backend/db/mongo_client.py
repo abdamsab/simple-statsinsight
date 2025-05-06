@@ -8,9 +8,13 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, OperationFailure, PyMongoError
 import asyncio
 from typing import Dict, Any, List, Optional
+from bson import ObjectId # --- ADDED: Import ObjectId for working with document IDs
+import traceback # --- ADDED: Import traceback for detailed error logging
 # Import the Settings class definition for type hinting
 from ..config.settings import Settings
-# from dotenv import load_dotenv     # No longer need dotenv load here if api.main loads it via Pydantic Settings   
+# from dotenv import load_dotenv     # No longer need dotenv load here if api.main loads it via Pydantic Settings
+from pymongo.collection import Collection # Import Collection for type hinting
+
 
 # --- Global DB Client and Database reference ---
 mongo_client: MongoClient | None = None
@@ -18,6 +22,7 @@ mongo_db = None # Reference to the specific database
 
 
 # --- Connection Function (Modified to accept Settings object and use settings.DB_NAME) ---
+# Accepts the settings object from main.py
 async def connect_to_mongo(settings: Settings):
     """Connects to MongoDB using URI from Settings object and gets database using settings.DB_NAME."""
     global mongo_client, mongo_db
@@ -25,7 +30,7 @@ async def connect_to_mongo(settings: Settings):
         print("MongoDB client already connected.")
         return
 
-    # Access MONGODB_URI from the passed Settings object
+    # Access MONGODB_URI and DB_NAME from the passed Settings object
     mongodb_uri = settings.MONGODB_URI
     db_name = settings.DB_NAME # <--- Get DB_NAME from settings
 
@@ -40,8 +45,10 @@ async def connect_to_mongo(settings: Settings):
 
     try:
         print("Attempting to connect to MongoDB...")
+        # Use synchronous MongoClient and asyncio.to_thread for potentially blocking operations
         mongo_client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=5000)
-        mongo_client.admin.command('ismaster')
+        # Use asyncio.to_thread for the blocking command
+        await asyncio.to_thread(mongo_client.admin.command, 'ismaster')
         print("MongoDB connection successful.")
 
         # Get database using the DB_NAME from settings
@@ -62,7 +69,8 @@ async def close_mongo_connection():
     global mongo_client
     if mongo_client:
         print("Closing MongoDB connection.")
-        mongo_client.close()
+        # Use asyncio.to_thread for the blocking close operation
+        await asyncio.to_thread(mongo_client.close)
         mongo_client = None
         print("MongoDB connection closed.")
     else:
@@ -74,27 +82,27 @@ async def close_mongo_connection():
 def get_competitions_collection():
     """Returns the competitions collection."""
     global mongo_db
-    # Corrected: Use explicit comparison with None
+    # Use explicit comparison with None as per your baseline
     if mongo_db is not None:
-        # Replace 'competitions' with your actual competitions collection name if different
+        # Using hardcoded collection name from your baseline
         return mongo_db.get_collection("competitions")
     return None
 
 def get_parameters_collection():
     """Returns the parameters collection."""
     global mongo_db
-    # Corrected: Use explicit comparison with None
+    # Use explicit comparison with None as per your baseline
     if mongo_db is not None:
-        # Replace 'parameters' with your actual parameters collection name if different
+        # Using hardcoded collection name from your baseline
         return mongo_db.get_collection("parameters")
     return None
 
 def get_predictions_collection():
     """Returns the predictions collection."""
     global mongo_db
-    # Corrected: Use explicit comparison with None
+    # Use explicit comparison with None as per your baseline
     if mongo_db is not None:
-        # Replace 'predictions' with your actual predictions collection name if different
+        # Using hardcoded collection name from your baseline
         return mongo_db.get_collection("predictions")
     return None
 
@@ -102,14 +110,15 @@ def get_predictions_collection():
 # Add getter functions for other future collections
 
 
-# --- Data Access Functions ---
+# --- Data Access Functions (CRUD) ---
 # These functions interact with collections obtained from the getters, no direct Settings needed here.
-async def find_one(collection, query: Dict[str, Any]):
+async def find_one(collection: Collection | None, query: Dict[str, Any]):
     """Finds a single document in a collection."""
     if collection is None:
         print("Error: Collection not available for find_one operation.")
         return None
     try:
+        # Use asyncio.to_thread for the blocking find_one operation
         document = await asyncio.to_thread(collection.find_one, query)
         return document
     except PyMongoError as e:
@@ -117,10 +126,12 @@ async def find_one(collection, query: Dict[str, Any]):
         return None
     except Exception as e:
         print(f"An unexpected error occurred during find_one: {e}")
+        # Include traceback for unexpected errors
+        print(traceback.format_exc())
         return None
 
 
-async def find_many(collection, query: Dict[str, Any], options: Optional[Dict[str, Any]] = None):
+async def find_many(collection: Collection | None, query: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """Finds multiple documents in a collection."""
     if collection is None:
         print("Error: Collection not available for find_many operation.")
@@ -132,6 +143,7 @@ async def find_many(collection, query: Dict[str, Any], options: Optional[Dict[st
     skip = options.get("skip", 0) if options else 0
 
     try:
+        # Build the cursor object - these calls themselves are usually fast
         cursor = collection.find(query, projection)
         if sort:
             cursor = cursor.sort(sort)
@@ -140,30 +152,102 @@ async def find_many(collection, query: Dict[str, Any], options: Optional[Dict[st
         if limit > 0:
              cursor = cursor.limit(limit)
 
-        documents = await asyncio.to_thread(list, cursor)
+        # Use asyncio.to_thread for the blocking cursor iteration (converting to list)
+        documents = await asyncio.to_thread(list, cursor) # Converting the cursor to a list fetches all results
         return documents
     except PyMongoError as e:
         print(f"MongoDB Error during find_many: {e}")
         return []
     except Exception as e:
         print(f"An unexpected error occurred during find_many: {e}")
+        # Include traceback for unexpected errors
+        print(traceback.format_exc())
         return []
 
 
-async def insert_one(collection, document: Dict[str, Any]):
+async def insert_one(collection: Collection | None, document: Dict[str, Any]) -> Optional[ObjectId]:
     """Inserts a single document into a collection."""
     if collection is None:
         print("Error: Collection not available for insert_one operation.")
         return None
     try:
+        # Use asyncio.to_thread for the blocking insert_one operation
         result = await asyncio.to_thread(collection.insert_one, document)
-        return result.inserted_id
+        # Check if the insertion was acknowledged
+        if result.acknowledged:
+             # print(f"Successfully inserted document with ID: {result.inserted_id}") # Optional success print
+             return result.inserted_id # Return the ObjectId of the inserted document
+        else:
+             print(f"Warning: Insert operation not acknowledged for document in collection '{collection.name}'.")
+             # Log details of the document that failed to be acknowledged
+             # print(f"Document data (first 200 chars): {str(document)[:200]}...") # Optional debug print
+             return None # Return None if insertion was not acknowledged
+
     except PyMongoError as e:
+        # Specific error handling for duplicate key errors
         if e.code == 11000:
              print(f"MongoDB Duplicate Key Error during insert_one: {e}")
         else:
              print(f"MongoDB Error during insert_one: {e}")
-        return None
+        return None # Return None on insertion failure due to DB error
     except Exception as e:
         print(f"An unexpected error occurred during insert_one: {e}")
-        return None
+        # Include details of the document that failed to insert
+        # print(f"Document data (first 200 chars): {str(document)[:200]}...") # Optional debug print
+        # Include traceback for unexpected errors
+        print(traceback.format_exc())
+        return None # Return None on unexpected insertion failure
+
+# --- ADDED: Function to update a document by ObjectId string ---
+async def update_one_by_id(collection: Collection | None, doc_id: str, update_data: Dict[str, Any]) -> bool:
+    """
+    Updates a single document in the specified collection by its MongoDB ObjectId string.
+    Args:
+        collection: The PyMongo collection object.
+        doc_id: The string representation of the document's ObjectId.
+        update_data: A dictionary containing the fields and values to update.
+                     Uses MongoDB's $set operator.
+    Returns:
+        True if the update was successful (matched and modified a document or matched with no modification), False otherwise.
+    """
+    if collection is None:
+        print(f"Error: Collection not available for update_one_by_id operation for doc_id: {doc_id}.")
+        return False
+
+    if not isinstance(doc_id, str):
+        print(f"Error: update_one_by_id received non-string doc_id: {doc_id} ({type(doc_id)})")
+        return False
+
+    try:
+        # Convert the string doc_id to ObjectId
+        object_id = ObjectId(doc_id)
+    except Exception as e:
+        print(f"Error: Invalid ObjectId string provided to update_one_by_id: {doc_id} - {e}")
+        # Include traceback for ObjectId conversion error
+        print(traceback.format_exc())
+        return False # Indicate failure due to invalid ID
+
+    try:
+        # Use $set to update specific fields - ensures only specified fields are modified
+        # Use asyncio.to_thread for the blocking update_one operation
+        result = await asyncio.to_thread(collection.update_one, {"_id": object_id}, {"$set": update_data})
+
+        # Check if a document was matched and modified
+        if result.matched_count == 1 and result.modified_count >= 0: # >=0 because data might be the same
+            # print(f"Successfully updated document with ID: {doc_id}. Matched: {result.matched_count}, Modified: {result.modified_count}") # Optional success print
+            return True # Consider it successful if matched, even if data was identical
+        else:
+            # Log a warning if the document wasn't found or wasn't modified when expected.
+            print(f"Warning: Update operation by ID {doc_id} did not match or modify as expected. Matched: {result.matched_count}, Modified: {result.modified_count}")
+            return False # Indicate failure if not matched or not modified as expected
+
+    except PyMongoError as e:
+        print(f"MongoDB Error during update_one_by_id operation for document ID {doc_id}: {e}")
+        return False # Indicate failure on DB error
+    except Exception as e:
+        print(f"An unexpected error occurred during update_one_by_id operation for document ID {doc_id}: {e}")
+        # Include traceback for unexpected errors
+        print(traceback.format_exc())
+        return False # Indicate failure on unexpected exception
+
+# --- End of update_one_by_id ---
