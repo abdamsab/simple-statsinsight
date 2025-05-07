@@ -8,3 +8,5 @@ python-dateutil
 pymongo
 python-dotenv
 pydantic-setting
+passlib[bcrypt]
+python-jose[cryptography]
