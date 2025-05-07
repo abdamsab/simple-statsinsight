@@ -1,9 +1,10 @@
 fastapi
 uvicorn
-google-generativeai
+google-genai
 playwright
 lxml
 crawl4ai
 python-dateutil
 pymongo
 python-dotenv
+pydantic-setting
