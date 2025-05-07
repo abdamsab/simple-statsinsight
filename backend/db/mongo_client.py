@@ -120,6 +120,18 @@ def get_advertising_collection():
     return None # Explicit return None for clarity if mongo_db is None
 
 
+# --- New: Getter for Users Collection ---
+def get_users_collection() -> Collection | None:
+    """Gets the MongoDB 'users' collection."""
+    global mongo_db
+    if mongo_db:
+        return mongo_db.get_collection("users")
+    else:
+        print("Error: MongoDB database not initialized. Cannot get 'users' collection.")
+        return None
+
+
+
 # Add getter functions for other future collections
 
 # --- Data Access Functions (CRUD) ---
