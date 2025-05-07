@@ -17,6 +17,7 @@ from typing import Dict, Any # Import Dict, Any
 # --- Import modules from their locations ---
 from ..db import mongo_client as database
 from ..features.football_analytics import routes as football_analytics_routes # Feature router
+from ..features.advertising import routes as advertising_routes # New Advertising Feature router
 from ..config.settings import settings # Import the settings instance from config/settings.py
 
 
@@ -124,6 +125,7 @@ async def shutdown_event():
 
 # --- Include Feature Routers ---
 app.include_router(football_analytics_routes.router)
+app.include_router(advertising_routes.router)
 
 # --- Root Endpoint (Optional) ---
 @app.get("/")

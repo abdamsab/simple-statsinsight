@@ -107,8 +107,20 @@ def get_predictions_collection():
     return None
 
 
-# Add getter functions for other future collections
+# --- Collection Getter: Advertising (New) ---
+def get_advertising_collection():
+    """Returns the advertising collection."""
+    global mongo_db # Use global explicitly to match existing style
+    # Use explicit comparison with None to match existing style
+    if mongo_db is not None:
+        # Using get_collection method to match existing style
+        return mongo_db.get_collection("advertising")
+    # Returns None implicitly if mongo_db is None, matching existing style
+    # No try/except here to match baseline style
+    return None # Explicit return None for clarity if mongo_db is None
 
+
+# Add getter functions for other future collections
 
 # --- Data Access Functions (CRUD) ---
 # These functions interact with collections obtained from the getters, no direct Settings needed here.
