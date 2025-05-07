@@ -18,7 +18,7 @@ from crawl4ai.content_filter_strategy import PruningContentFilter
 # Import database module from its new location
 from ....db import mongo_client as database # Adjusted import path (up three levels, then into db)
 
-from typing import Any # Import Any for type hints
+from typing import Any, Optional # Import Any, Optional for type hints # --- MODIFIED: Ensure Optional is imported
 
 
 # --- Scraping Function: Fetch Fixture List ---
@@ -167,10 +167,39 @@ async def fetch_matches_fixtures(fixture_url: str, competitions_collection: Coll
     print(f"Finished scraping. Found {len(matches_data)} fixtures after filtering by database status.")
     return matches_data
 
-# --- Scraping Function: Fetch Match Stats/Results Markdown ---
-async def fetch_match_stats_markdown(url: str):
-    """Fetches match stats from a given URL and returns as markdown."""
-    print(f"Fetching stats/results markdown from: {url}")
+
+
+
+# --- Scraping Function: Fetch Match Stats/Results Markdown (Modified to accept task_type) ---
+# Added task_type parameter to differentiate between pre-match and post-match scraping needs.
+async def fetch_match_stats_markdown(url: str, task_type: str) -> Optional[str]: # --- MODIFIED: Added task_type parameter
+    """
+    Fetches match stats/results from a given URL and returns as markdown,
+    using different selectors based on task_type ("pre_match", "post_match").
+    """
+    print(f"Fetching stats/results markdown for task type '{task_type}' from: {url}")
+
+    # --- Select CSS Selector based on task_type --- # --- ADDED: Conditional logic for selector
+    selected_selector = None
+    if task_type == "pre_match":
+        selected_selector = ".body-text" # Selector for pre-match stats as per your baseline
+        print(f"Using pre-match selector: '{selected_selector}'")
+    elif task_type == "post_match":
+        # Selector you provided for post-match results
+        selected_selector = "td[valign='top'][align='center'][style='padding-left:10px;']"
+        print(f"Using post-match selector: '{selected_selector}'")
+    else:
+        print(f"Error: Invalid task_type '{task_type}' provided to fetch_match_stats_markdown.")
+        return None # Return None for invalid task type
+
+
+    # --- Check if a selector was successfully selected --- # --- ADDED: Check selector is not None
+    if selected_selector is None:
+        print("Error: No valid CSS selector selected based on task_type. Cannot proceed with scraping.")
+        return None
+
+
+    # --- Configure Crawl4AI Run ---
     prune_filter = PruningContentFilter(
         threshold=0.5,
         threshold_type="fixed",
@@ -187,32 +216,39 @@ async def fetch_match_stats_markdown(url: str):
 
     run_config = CrawlerRunConfig(
         markdown_generator=md_generator,
-        css_selector=".body-text",
-        excluded_tags=["form", "header", "footer", "nav"],
+        css_selector=selected_selector, # --- MODIFIED: Use the selected_selector variable
+        excluded_tags=["form", "header", "footer", "nav"], # Keep baseline exclusions
         exclude_external_links=True,
         exclude_social_media_links=True,
         exclude_external_images=True,
+        # Consider if exclusions need to differ based on task_type
     )
 
     browser_config = BrowserConfig()
 
+    # --- Run the Crawler ---
     async with AsyncWebCrawler(config=browser_config) as crawler:
         try:
             result = await crawler.arun(
                 url=url,
                 config=run_config,
-                timeout=60000
+                timeout=60000 # Your baseline timeout
             )
         except Exception as e:
-             print(f"Error during crawling {url}: {e}")
+             print(f"Error during crawling {url} for task '{task_type}': {e}") # --- MODIFIED: Include task_type in log
              return None
 
         if not result or not result.success:
-            print("Crawl failed:", result.error_message if result else "No result object")
+            print(f"Crawl failed for url '{url}' (task: '{task_type}'):", result.error_message if result else "No result object") # --- MODIFIED: Include task_type in log
             return None
+
+        # --- Process Result ---
         output_mkdwn = getattr(result.markdown, 'raw_markdown', None)
         if output_mkdwn:
-            print("Stats/results fetched and converted to markdown.")
+            print(f"Content fetched and converted to markdown for task '{task_type}'. Markdown length: {len(output_mkdwn)}") # --- MODIFIED: Include task_type in log
         else:
-            print("Stats fetched, but no markdown content was generated.")
+            print(f"Content fetched, but no markdown content was generated for task '{task_type}'.") # --- MODIFIED: Include task_type in log
+
         return output_mkdwn
+
+# --- End of fetch_match_stats_markdown ---
