@@ -136,8 +136,8 @@ async def run_post_match_analysis_endpoint(target_date: str, background_tasks: B
 # Added Depends(get_current_user) and implemented RBAC logic
 # REPLACE the entire existing @router.get("/predictions") function definition with this code:
 @router.get("/predictions", response_model=List[MatchPredictionResponse]) # Specify response model
-async def get_predictions_and_analysis_endpoint(
-    request: Request,
+async (
+    request: Rdef get_predictions_and_analysis_endpointequest,
     target_date: str = Query(..., description="Fetch data for a specific date (DD-MM-YYYY)"), # Require date
     current_user: TokenData = Depends(get_current_user), # Protect endpoint and get user - ADDED DEPENDENCY
 ):
