@@ -120,6 +120,7 @@ def get_advertising_collection():
     return None # Explicit return None for clarity if mongo_db is None
 
 
+
 # --- New: Getter for Users Collection ---
 def get_users_collection() -> Collection | None:
     """Gets the MongoDB 'users' collection."""
@@ -128,6 +129,39 @@ def get_users_collection() -> Collection | None:
         return mongo_db.get_collection("users")
     else:
         print("Error: MongoDB database not initialized. Cannot get 'users' collection.")
+        return None
+
+
+
+# --- Getter for Email Tokens Collection ---
+def get_email_tokens_collection() -> Collection | None:
+    """Gets the MongoDB 'email_tokens' collection."""
+    global mongo_db
+    if mongo_db:
+        return mongo_db.get_collection("email_tokens")
+    else:
+        print("Error: MongoDB database not initialized. Cannot get 'email_tokens' collection.")
+        return None
+
+# --- Getter for Subscription History Collection ---
+def get_subscription_history_collection() -> Collection | None:
+    """Gets the MongoDB 'subscription_history' collection."""
+    global mongo_db
+    if mongo_db:
+        return mongo_db.get_collection("subscription_history")
+    else:
+        print("Error: MongoDB database not initialized. Cannot get 'subscription_history' collection.")
+        return None
+
+
+# --- New: Getter for Referral Events Collection ---
+def get_referral_events_collection() -> Collection | None:
+    """Gets the MongoDB 'referral_events' collection."""
+    global mongo_db
+    if mongo_db:
+        return mongo_db.get_collection("referral_events")
+    else:
+        print("Error: MongoDB database not initialized. Cannot get 'referral_events' collection.")
         return None
 
 

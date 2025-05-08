@@ -27,7 +27,7 @@ from ...config.settings import Settings
 
 # --- Define API Router for this feature ---
 router = APIRouter(
-    prefix="/analytic",                 # Set prefix to /analytic based on user's successful call
+    prefix="/api/match",                 # Set prefix to /analytic based on user's successful call
     tags=["football_analytics"]         # Optional: Add tags for OpenAPI documentation
 )
 

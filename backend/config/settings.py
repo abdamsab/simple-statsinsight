@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     # Add other environment variables your app needs here
     # e.g., APP_ENV: str = "development" # Example with a default value
 
+    # --- New Fields for JWT (Add these three lines) ---
+    SECRET_KEY: str ="StatInsighT"  # Critical: Needs to be a strong, random string
+    ALGORITHM: str = "HS256" # Default JWT algorithm (HS256 is common for symmetric keys)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 # Default access token expiration time
+
+    # --- New Fields for Authentication / Trials ---
+    EMAIL_CONFIRM_TOKEN_EXPIRE_HOURS: int = 24 # Default email confirmation token expiry in hours
+    DEFAULT_NEW_USER_TRIAL_DAYS: int = 7 # Default trial period in days if not found in parameters
+
     # --- Configuration for Pydantic Settings ---
     model_config = SettingsConfigDict(
         env_file='.env',  # Instruct Pydantic Settings to load from .env file
