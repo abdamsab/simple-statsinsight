@@ -15,6 +15,7 @@ from pydantic import (
 from typing import Optional, Dict, Any # Import Dict, Any for TokenData payload
 import re # Needed for password complexity regex example
 import datetime # Needed if you include datetime in TokenData
+from pydantic import BaseModel, Field, EmailStr
 
 # --- Request Model for User Registration ---
 class UserRegisterRequest(BaseModel):
@@ -99,4 +100,44 @@ class TokenData(BaseModel):
 
     # Optional: Add other standard or custom claims if you encode them (e.g., iat)
     # iat: datetime = Field(..., description="Issued at time (UTC)")
+
+
+
+    class PasswordResetRequest(BaseModel):
+    """Model for requesting a password reset link."""
+    email: EmailStr = Field(..., description="Email address associated with the account.")
+    # Add username if you allow password reset by username too
+    # username: Optional[str] = Field(None, description="Username associated with the account (optional).")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "user@example.com"
+            }
+        }
+    )
+
+class PasswordReset(BaseModel):
+    """Model for resetting the password using a token."""
+    token: str = Field(..., description="The password reset token received via email.")
+    new_password: str = Field(..., min_length=8, description="The new password for the account.")
+    confirm_password: str = Field(..., description="Confirmation of the new password.")
+
+    # Optional: Add a validator to ensure new_password matches confirm_password
+    # @model_validator(mode='after')
+    # def check_passwords_match(self) -> 'PasswordReset':
+    #     if self.new_password != self.confirm_password:
+    #         raise ValueError('Passwords do not match')
+    #     return self
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "token": "a_very_secret_reset_token_xyz123",
+                "new_password": "NewSecurePassword123!",
+                "confirm_password": "NewSecurePassword123!"
+            }
+        }
+    )
+
 

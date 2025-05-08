@@ -29,18 +29,21 @@ from ....models.referral_event import ReferralEvent
 # Import Pydantic models for request/response from this step (3.3/3.4)
 from ....models.auth import (
     UserRegisterRequest, # For validating registration input
-    UserLoginRequest,    # For validating login input
-    Token,               # For login response (JWT token)
-    TokenData            # For defining JWT payload structure
+    UserLoginRequest,     # For validating login input
+    Token,              # For login response (JWT token)
+    TokenData,            # For defining JWT payload structure
+    PasswordResetRequest, # ADDED IMPORT
+    PasswordReset         # ADDED IMPORT
 )
 
 
+
 # Import security utilities from Step 3.2
-from .security import (
-    hash_password,
-    verify_password,
-    create_access_token,
-    verify_token, # Make sure verify_token is imported
+from .security import ( # Your existing import
+     hash_password,
+     verify_password,
+     create_access_token,
+     verify_token, # Make sure verify_token is imported
 )
 
 # Import dependencies from Step 3.5
@@ -48,6 +51,13 @@ from .dependencies import get_current_user # Import the dependency function
 
 # Import settings
 from ....config.settings import settings
+
+from typing import Dict, Any, List, Optional, Union # Your existing import
+from typing import Annotated # ADDED IMPORT for Depends with type hints
+from . import service as auth_service
+
+# Import dependencies from Step 3.5
+from .dependencies import get_current_user # Import the dependency function
 
 
 # --- Define API Router for this feature ---
@@ -512,5 +522,127 @@ async def protected_test_route(current_user: TokenData = Depends(get_current_use
     return response_data
 
 # --- End of protected_test_route endpoint ---
+# backend/features/user/auth/routes.py
 
-# --- Add other authentication related endpoints below (e.g., logout, email confirmation, password reset) ---
+# ... (existing endpoints like /register, /login, /protected_test) ...
+
+# --- ADDED: Endpoint for User Logout ---
+# Note: With simple JWTs, logout is often handled client-side by discarding the token.
+# This endpoint is included for completeness or potential server-side logging.
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout_endpoint(current_user: Annotated[TokenData, Depends(get_current_user)]):
+    """
+    Logs out the current user.
+
+    Note: For simple JWTs, this typically involves the client discarding the token.
+    This endpoint primarily serves as a protected route to confirm authenticated status
+    at the time of logout or for potential server-side logging of the logout event.
+    It does NOT invalidate the JWT token on the server side by default (requires token blocklist etc.).
+    """
+    print(f"User {current_user.user_id} requested logout.")
+    # You could add server-side logic here if needed, e.g., logging the logout event.
+    # For JWT invalidation, you would need a mechanism like a token blocklist,
+    # which is beyond the scope of simple JWT implementation.
+
+    return {"message": "Logout successful. Please discard your token."}
+
+
+# --- ADDED: Endpoints for Email Confirmation ---
+
+@router.post("/request-email-confirmation", status_code=status.HTTP_200_OK)
+async def request_email_confirmation(request: Request, current_user: Annotated[TokenData, Depends(get_current_user)]):
+    """
+    Generates and sends a new email confirmation link to the current user.
+    (Note: Actual email sending logic is assumed to be handled elsewhere or is a placeholder).
+    """
+    print(f"User {current_user.user_id} requested email confirmation link.")
+
+    # Check if email is already confirmed using service or direct DB access
+    # Using getter and direct access here as an alternative to a service function
+    users_collection = get_users_collection()
+    if users_collection:
+        user_doc = await database.find_one(users_collection, {"_id": ObjectId(current_user.user_id)})
+        if user_doc and user_doc.get("email_confirmed"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already confirmed.")
+
+    # Generate a new token using the service
+    token = await auth_service.generate_email_confirmation_token(current_user.user_id)
+
+    if token:
+        # IMPORTANT: Actual email sending code goes here or is triggered from here.
+        # Example placeholder:
+        confirmation_link = f"YOUR_FRONTEND_CONFIRMATION_URL?token={token}"
+        print(f"Generated confirmation link for user {current_user.user_id}: {confirmation_link}")
+        # In a real application, you would use an email service here.
+        # For now, we assume the link is communicated or logged.
+
+        return {"message": "Email confirmation link generated. Please check your email (or server logs)."}
+    else:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate confirmation token.")
+
+@router.get("/confirm-email/{token}", status_code=status.HTTP_200_OK)
+async def confirm_email(token: str):
+    """
+    Validates the email confirmation token and confirms the user's email address.
+    """
+    print(f"Received email confirmation request with token: {token}")
+
+    # Validate the token using the service
+    user_id = await auth_service.validate_email_confirmation_token(token)
+
+    if user_id:
+        return {"message": "Email confirmed successfully."}
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired email confirmation token.")
+
+
+# --- ADDED: Endpoints for Password Reset ---
+
+@router.post("/request-password-reset", status_code=status.HTTP_200_OK)
+async def request_password_reset(request: Request, reset_request: PasswordResetRequest):
+    """
+    Requests a password reset link to be sent to the user's email.
+    (Note: Actual email sending logic is assumed to be handled elsewhere or is a placeholder).
+    """
+    print(f"Received password reset request for email: {reset_request.email}")
+
+    # Generate the token (service handles user lookup and token storage)
+    token = await auth_service.generate_password_reset_token(reset_request.email)
+
+    # Security consideration: Always return a success message even if the email doesn't exist,
+    # to prevent user enumeration attacks.
+    if token:
+         # IMPORTANT: Actual email sending code goes here or is triggered from here.
+         # Example placeholder:
+         reset_link = f"YOUR_FRONTEND_RESET_PASSWORD_URL?token={token}"
+         print(f"Generated password reset link for email {reset_request.email}: {reset_link}")
+         # In a real application, you would use an email service here.
+         # For now, we assume the link is communicated or logged.
+         print("Password reset token generated and logged (email not sent in this placeholder).")
+
+
+    # Return generic success message for security, regardless of whether the email existed or token was generated
+    return {"message": "If an account with that email exists, a password reset link has been sent."}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(request: Request, reset_data: PasswordReset):
+    """
+    Resets the user's password using the provided token and new password.
+    """
+    print(f"Received password reset request with token (partial): {reset_data.token[:5]}...")
+
+    # Optional: Add password match validation here if not using Pydantic validator
+    if reset_data.new_password != reset_data.confirm_password:
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password and confirm password do not match.")
+
+    # Reset the password via the service
+    user_id = await auth_service.reset_user_password(reset_data.token, reset_data.new_password)
+
+    if user_id:
+        print(f"Password reset successful for user {user_id}.")
+        return {"message": "Password reset successfully."}
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired password reset token.")
+
+# ... (rest of the existing code in routes.py, including /fetch-results) ...
