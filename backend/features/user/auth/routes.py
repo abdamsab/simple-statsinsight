@@ -1,32 +1,46 @@
-# backend/features/user/auth/routes.py - UPDATED CODE (Includes /protected_test endpoint)
+# backend/features/user/auth/routes.py
 
 # This file defines FastAPI API endpoints specific to user authentication (registration, login, etc.).
 
-from fastapi import APIRouter, HTTPException, status, Depends, Request # Import Request and Depends
-from pymongo.collection import Collection
-from typing import Dict, Any, List, Optional
+import datetime # Import datetime for date validation
+# Modified import to include Depends, Request
+from fastapi import APIRouter, HTTPException, status, Depends, Request
+from fastapi.security import OAuth2PasswordRequestForm # For login form dependency
+from pymongo.collection import Collection # Import Collection for type hinting
+from typing import Dict, Any, List, Optional, Union, Annotated # MODIFIED IMPORT - Added Annotated and Union
 from datetime import datetime, timedelta, timezone # For managing time
-import secrets # For generating token strings
-import traceback # Import traceback for detailed error logging
-from bson import ObjectId # Import ObjectId to handle MongoDB IDs
+import secrets # For generating token strings (though service handles this now, keeping if other parts use it)
+import traceback # Import traceback for detailed error logging (already there)
+from bson import ObjectId # Import ObjectId to handle MongoDB IDs (already there)
+from pymongo.errors import PyMongoError # Import MongoDB specific errors (already there)
 
-# Import database module and getters from Step 3.1
-from ....db import mongo_client as database
-from ....db.mongo_client import ( # Explicitly import getter functions
-    get_users_collection,
-    get_subscription_history_collection,
-    get_email_tokens_collection,
-    get_parameters_collection,
-    get_referral_events_collection,
+# --- Import orchestration functions from the feature's orchestration layer ---
+# (This line is likely specific to other features, keep if needed in auth, but generally auth shouldn't import from other feature orchestrations)
+# from .. import orchestration as football_analytics_orchestration # Example, remove if not needed in auth
+
+# --- Import database module and getters from Step 3.1 ---
+from ....db import mongo_client as database # Import database module
+from ....db.mongo_client import ( # Explicitly import getter functions needed *in this file*
+    get_users_collection, # Need this getter for direct check in request-email-confirmation
+    # get_subscription_history_collection, # Only needed if routes interacts directly, likely not for 3.8
+    # get_email_tokens_collection,       # Service uses this getter, not routes directly for 3.8
+    # get_parameters_collection,         # Not needed in auth routes for 3.8
+    # get_referral_events_collection,    # Not needed in auth routes for 3.8
 )
 
+
 # Import Pydantic models from Step 3.1 (data models)
+# Check if you still need these User, SubscriptionHistory, EmailToken, ReferralEvent models directly in routes.py
+# If routes.py only interacts via auth_service and uses auth models like UserResponse,
+# then these imports might be unnecessary here and could be removed for cleanliness.
+# Assuming they are used elsewhere in routes.py, we'll keep them for now.
 from ....models.user import User
 from ....models.subscription_history import SubscriptionHistory
 from ....models.email_token import EmailToken
 from ....models.referral_event import ReferralEvent
 
-# Import Pydantic models for request/response from this step (3.3/3.4)
+
+# Import Pydantic models for request/response from this step (3.3/3.4) - MODIFIED IMPORT
 from ....models.auth import (
     UserRegisterRequest, # For validating registration input
     UserLoginRequest,     # For validating login input
@@ -37,27 +51,22 @@ from ....models.auth import (
 )
 
 
-
-# Import security utilities from Step 3.2
-from .security import ( # Your existing import
-     hash_password,
-     verify_password,
-     create_access_token,
-     verify_token, # Make sure verify_token is imported
+# Import security utilities from Step 3.2 (keep these as they are likely used for login/token creation)
+from .security import (
+    hash_password,
+    verify_password,
+    create_access_token, # Assumed to be here for /login
+    verify_token, # Make sure verify_token is imported (likely used by dependency)
 )
 
-# Import dependencies from Step 3.5
-from .dependencies import get_current_user # Import the dependency function
-
-# Import settings
-from ....config.settings import settings
-
-from typing import Dict, Any, List, Optional, Union # Your existing import
-from typing import Annotated # ADDED IMPORT for Depends with type hints
+# Import auth service functions (from the NEW service.py file) - ADDED IMPORT
 from . import service as auth_service
 
-# Import dependencies from Step 3.5
-from .dependencies import get_current_user # Import the dependency function
+# Import authentication dependencies from Step 3.5
+from .dependencies import get_current_user # Import the dependency function (already there)
+
+# Import settings (already exists)
+from ....config.settings import settings
 
 
 # --- Define API Router for this feature ---
